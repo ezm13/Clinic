@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Entrar | Clínica{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-5">
+
+    <div class="panel-glass p-4 p-md-5">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h1 class="h4 mb-1 fw-semibold">Bienvenido</h1>
+          <div class="muted">Inicia sesión para continuar</div>
+        </div>
+        <div class="d-none d-md-flex align-items-center gap-2 text-success">
+          <i class="bi bi-shield-check fs-4"></i>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Errores generales -->
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <!-- Username -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Usuario</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            {{ form.username }}
+          </div>
+          {% if form.username.errors %}
+            <div class="text-danger small mt-1">{{ form.username.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Password + Ojito -->
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            {{ form.password }}
+            <button class="btn btn-outline-secondary" type="button" id="togglePass" aria-label="Mostrar contraseña">
+              <i class="bi bi-eye" id="toggleIcon"></i>
+            </button>
+          </div>
+          {% if form.password.errors %}
+            <div class="text-danger small mt-1">{{ form.password.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Remember + Forgot -->
+        <div class="d-flex align-items-center justify-content-between mt-3 mb-4">
+          <div class="form-check">
+            {{ form.remember_me }}
+            <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
+              Recordarme
+            </label>
+          </div>
+
+          <a class="text-decoration-none" href="{% url 'password_reset' %}">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
+
+        <button class="btn btn-dark w-100 btn-pill py-2" type="submit">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+        </button>
+
+        <div class="text-center muted mt-4 small">
+          Si tienes problemas para acceder, solicita un restablecimiento de contraseña.
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    const btn = document.getElementById("togglePass");
+    const icon = document.getElementById("toggleIcon");
+
+    // Django normalmente renderiza password con id="id_password"
+    const passInput = document.getElementById("id_password");
+
+    if (!btn || !icon || !passInput) return;
+
+    btn.addEventListener("click", function () {
+      const isText = passInput.getAttribute("type") === "text";
+      passInput.setAttribute("type", isText ? "password" : "text");
+      icon.className = isText ? "bi bi-eye" : "bi bi-eye-slash";
+    });
+  })();
+</script>
+{% endblock %}

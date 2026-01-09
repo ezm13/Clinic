@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% block title %}Detalle de Cita - Clínica{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Header -->
+  <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h1 class="h4 mb-1">Detalle de Cita</h1>
+      <div class="muted">
+        <span class="me-2">ID #{{ appointment.id }}</span>
+        <span class="me-2">•</span>
+        <span><i class="bi bi-calendar-event me-1"></i>{{ appointment.start_time|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      {% if prescriptions %}
+        <a class="btn btn-outline-dark btn-sm btn-pill"
+           href="{% url 'appointment_prescriptions_pdf' appointment.id %}">
+          <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+        </a>
+      {% endif %}
+
+      {% if not is_patient and prescriptions %}
+        <form method="post" action="{% url 'appointment_prescriptions_email' appointment.id %}" class="m-0">
+          {% csrf_token %}
+          <button class="btn btn-outline-primary btn-sm btn-pill" type="submit">
+            <i class="bi bi-envelope me-1"></i> Enviar
+          </button>
+        </form>
+      {% endif %}
+
+      {% if not is_patient %}
+        <a class="btn btn-outline-dark btn-sm btn-pill" href="{% url 'appointment_edit' appointment.id %}">
+          <i class="bi bi-pencil-square me-1"></i> Editar
+        </a>
+      {% endif %}
+
+      <a class="btn btn-outline-secondary btn-sm btn-pill" href="javascript:history.back()">
+        <i class="bi bi-arrow-left me-1"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- LEFT: resumen + acciones estado -->
+    <div class="col-lg-5">
+      <div class="panel-glass p-3 p-md-4">
+        <div class="card card-soft border-0">
+          <div class="card-body p-4">
+
+            <!-- Status badges -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+              <div class="fw-semibold"><i class="bi bi-info-circle me-1"></i> Resumen</div>
+
+              <div>
+                {% if appointment.status == "CONFIRMED" %}
+                  <span class="badge bg-success">Confirmada</span>
+                {% elif appointment.status == "PENDING" %}
+                  <span class="badge bg-warning text-dark">Pendiente</span>
+                {% elif appointment.status == "CANCELLED" %}
+                  <span class="badge bg-danger">Cancelada</span>
+                {% elif appointment.status == "DONE" %}
+                  <span class="badge bg-primary">Finalizada</span>
+                {% else %}
+                  <span class="badge text-bg-light border">{{ appointment.status }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Doctor controls -->
+            {% if not is_patient %}
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <form method="post" action="{% url 'appointment_set_status' appointment.id 'PENDING' %}" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-warning btn-sm btn-pill">
+                    <i class="bi bi-hourglass-split me-1"></i> Pendiente
+                  </button>
+                </form>
+
+                <form method="post" action="{% url 'appointment_set_status' appointment.id 'CONFIRMED' %}" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-success btn-sm btn-pill">
+                    <i class="bi bi-check2-circle me-1"></i> Confirmar
+                  </button>
+                </form>
+
+                <form method="post" action="{% url 'appointment_set_status' appointment.id 'CANCELLED' %}" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-danger btn-sm btn-pill">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                  </button>
+                </form>
+
+                <form method="post" action="{% url 'appointment_set_status' appointment.id 'DONE' %}" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-primary btn-sm btn-pill">
+                    <i class="bi bi-flag me-1"></i> Finalizar
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <!-- Patient controls -->
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                {% if appointment.status == "PENDING" %}
+                  <form method="post" action="{% url 'patient_confirm_appointment' appointment.id %}" class="m-0">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-success btn-sm btn-pill" type="submit">
+                      <i class="bi bi-check2-circle me-1"></i> Confirmar
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if appointment.status != "DONE" and appointment.status != "CANCELLED" %}
+                  <form method="post" action="{% url 'patient_cancel_appointment' appointment.id %}" class="m-0">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-danger btn-sm btn-pill" type="submit"
+                            onclick="return confirm('¿Cancelar esta cita?');">
+                      <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <hr>
+
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Paciente</dt>
+              <dd class="col-sm-8">{{ appointment.patient|default:"—" }}</dd>
+
+              <dt class="col-sm-4">Inicio</dt>
+              <dd class="col-sm-8">{{ appointment.start_time|date:"d/m/Y H:i" }}</dd>
+
+              <dt class="col-sm-4">Fin</dt>
+              <dd class="col-sm-8">{{ appointment.end_time|date:"d/m/Y H:i" }}</dd>
+
+              <dt class="col-sm-4">Motivo</dt>
+              <dd class="col-sm-8">{{ appointment.reason|default:"—" }}</dd>
+            </dl>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: tabs -->
+    <div class="col-lg-7">
+      <div class="panel-glass p-3 p-md-4">
+        <div class="card card-soft border-0">
+          <div class="card-body p-0">
+
+            <ul class="nav nav-tabs px-3 pt-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-notas" type="button" role="tab">
+                  <i class="bi bi-journal-text me-1"></i> Notas
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-recetas" type="button" role="tab">
+                  <i class="bi bi-capsule me-1"></i> Recetas
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-archivos" type="button" role="tab">
+                  <i class="bi bi-paperclip me-1"></i> Archivos
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content p-4">
+
+              <!-- NOTAS -->
+              <div class="tab-pane fade show active" id="tab-notas" role="tabpanel">
+                {% if notes %}
+                  <div class="list-group mb-3">
+                    {% for n in notes %}
+                      <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <strong>{{ n.author|default:"—" }}</strong>
+                          <span class="text-muted small">{{ n.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+
+                        <div class="mt-2">{{ n.content }}</div>
+
+                        <div class="mt-2 d-flex flex-wrap gap-2 align-items-center">
+                          <span class="badge text-bg-light border">
+                            Visible al paciente: {{ n.visible_to_patient|yesno:"Sí,No" }}
+                          </span>
+
+                          {% if not is_patient %}
+                            <form method="post"
+                                  action="{% url 'clinical_note_delete' appointment.id n.id %}"
+                                  class="m-0"
+                                  onsubmit="return confirm('¿Eliminar esta nota clínica?');">
+                              {% csrf_token %}
+                              <button class="btn btn-outline-danger btn-sm btn-pill" type="submit">
+                                <i class="bi bi-trash me-1"></i> Eliminar
+                              </button>
+                            </form>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="text-muted mb-3">No hay notas aún.</p>
+                {% endif %}
+
+                {% if form %}
+                  <h3 class="h6 mt-3">Agregar nota</h3>
+                  <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button class="btn btn-primary btn-sm btn-pill" type="submit" name="save_note">
+                      <i class="bi bi-save me-1"></i> Guardar
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+
+              <!-- RECETAS -->
+              <div class="tab-pane fade" id="tab-recetas" role="tabpanel">
+                {% if prescriptions %}
+                  <div class="table-responsive mb-3">
+                    <table class="table table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th>Medicamento</th>
+                          <th>Dosis</th>
+                          <th>Frecuencia</th>
+                          <th>Duración</th>
+                          <th>Indicaciones</th>
+                          {% if not is_patient %}<th class="text-end">Acciones</th>{% endif %}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for p in prescriptions %}
+                          <tr>
+                            <td><strong>{{ p.medication|default:"—" }}</strong></td>
+                            <td>{{ p.dosage|default:"—" }}</td>
+                            <td>{{ p.frequency|default:"—" }}</td>
+                            <td>{{ p.duration|default:"—" }}</td>
+                            <td class="text-muted">{{ p.instructions|default:"—" }}</td>
+
+                            {% if not is_patient %}
+                              <td class="text-end">
+                                <form method="post"
+                                      action="{% url 'prescription_delete' appointment.id p.id %}"
+                                      class="m-0"
+                                      onsubmit="return confirm('¿Eliminar este medicamento?');">
+                                  {% csrf_token %}
+                                  <button class="btn btn-outline-danger btn-sm btn-pill" type="submit">
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                  </button>
+                                </form>
+                              </td>
+                            {% endif %}
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <p class="text-muted mb-3">No hay recetas agregadas.</p>
+                {% endif %}
+
+                {% if prescription_form %}
+                  <h3 class="h6 mt-3">Agregar receta</h3>
+                  <form method="post">
+                    {% csrf_token %}
+                    {{ prescription_form.as_p }}
+                    <button class="btn btn-success btn-sm btn-pill" type="submit" name="save_prescription">
+                      <i class="bi bi-save me-1"></i> Guardar
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+
+              <!-- ARCHIVOS -->
+              <div class="tab-pane fade" id="tab-archivos" role="tabpanel">
+                {% if files %}
+                  <div class="list-group mb-3">
+                    {% for f in files %}
+                      <div class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <div>
+                          <strong><i class="bi bi-file-earmark me-1"></i>{{ f.title|default:"Archivo" }}</strong>
+                          <div class="small text-muted">{{ f.created_at|date:"d/m/Y H:i" }}</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                          <a class="btn btn-outline-primary btn-sm btn-pill" href="{{ f.file.url }}" target="_blank">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Ver
+                          </a>
+
+                          {% if not is_patient %}
+                            <form method="post"
+                                  action="{% url 'appointment_file_delete' appointment.id f.id %}"
+                                  class="m-0"
+                                  onsubmit="return confirm('¿Eliminar este archivo?');">
+                              {% csrf_token %}
+                              <button class="btn btn-outline-danger btn-sm btn-pill" type="submit">
+                                <i class="bi bi-trash me-1"></i> Eliminar
+                              </button>
+                            </form>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="text-muted mb-3">No hay archivos adjuntos.</p>
+                {% endif %}
+
+                {% if file_form %}
+                  <h3 class="h6 mt-3">Subir archivo</h3>
+                  <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ file_form.as_p }}
+                    <button class="btn btn-dark btn-sm btn-pill" type="submit" name="save_file">
+                      <i class="bi bi-upload me-1"></i> Subir
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+เห็น
+  </div>
+</div>
+{% endblock %}
