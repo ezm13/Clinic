@@ -1,18 +1,40 @@
+# clinic/settings.py
+
 from pathlib import Path
 import os
-import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ Railway: SECRET_KEY desde env (fallback local)
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-only-change-me")
+# =========================
+# CORE
+# =========================
+SECRET_KEY = os.environ.get("SECRET_KEY", "CHANGE_ME_SUPER_SECRET_KEY")
 
-# ✅ DEBUG off por defecto (en local podés setear DEBUG=1)
-DEBUG = os.getenv("DEBUG", "0") == "1"
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-# ✅ Hosts
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "*").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".up.railway.app",     # ✅ permite subdominios de Railway
+]
 
+# Si tienes un dominio propio, agrégalo aquí, por ejemplo:
+# ALLOWED_HOSTS += ["tudominio.com"]
+
+# Para CSRF en producción (Railway)
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.up.railway.app",
+]
+# Si usas dominio propio:
+# CSRF_TRUSTED_ORIGINS += ["https://tudominio.com"]
+
+# Proxy headers (Railway / reverse proxy)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+# =========================
+# APPS
+# =========================
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -21,17 +43,19 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # Tus apps
     "accounts",
-    "patients",
     "appointments",
-    "notes",
+    "patients",
     "prescriptions",
+    "notes",
+    "records",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
-    # ✅ WhiteNoise (static en producción)
+    # ✅ WhiteNoise para servir static en Railway
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -47,10 +71,11 @@ ROOT_URLCONF = "clinic.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "templates"],  # ✅ tu carpeta templates/
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -61,15 +86,36 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "clinic.wsgi.application"
 
-# ✅ DB: Railway usa DATABASE_URL. Local cae a SQLite.
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        ssl_require=not DEBUG,
-    )
-}
 
+# =========================
+# DATABASE (SQLite local / Postgres Railway)
+# =========================
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    # ✅ Railway: Postgres
+    import dj_database_url
+
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,  # ✅ aquí sí aplica (Postgres)
+        )
+    }
+else:
+    # ✅ Local: SQLite (sin sslmode)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+
+# =========================
+# PASSWORDS
+# =========================
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -77,54 +123,36 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+
+# =========================
+# I18N / TIME
+# =========================
+LANGUAGE_CODE = "es-cr"
+TIME_ZONE = "America/Costa_Rica"
 USE_I18N = True
 USE_TZ = True
 
-# ✅ Static
+
+# =========================
+# STATIC / MEDIA
+# =========================
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "staticfiles"   # ✅ donde collectstatic genera todo
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# ✅ recomendado con WhiteNoise
-STORAGES = {
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
-}
-
-# ✅ Media (Railway NO persiste media sin S3/Cloudinary)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Auth
-LOGIN_REDIRECT_URL = "/appointments/my/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+# =========================
+# AUTH (opcional)
+# =========================
 LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 
-# Celery (si lo usás en Railway: REDIS_URL)
-CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
-CELERY_TIMEZONE = "America/Costa_Rica"
 
-# Email (Railway luego SMTP real)
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend"
-)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@clinica.local")
-
-# ✅ Seguridad básica en producción
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "1") == "1"
-
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
-    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))  # poné 31536000 cuando todo esté ok
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = False
-
-    # ✅ CSRF_TRUSTED_ORIGINS requerido si usás dominio https
-    CSRF_TRUSTED_ORIGINS = [
-        o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
-    ]
+# =========================
+# DEFAULTS
+# =========================
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
