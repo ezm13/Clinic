@@ -1,18 +1,19 @@
 from django.db import models
 from django.utils import timezone
-from appointments.models import Appointment
 
 
-class AppointmentFile(models.Model):
+class Prescription(models.Model):
     appointment = models.ForeignKey(
-        Appointment,
+        "appointments.Appointment",
         on_delete=models.CASCADE,
-        related_name="prescription_files",  # <-- CAMBIA ESTO
+        related_name="prescriptions",
     )
-    title = models.CharField(max_length=120, blank=True)
-    file = models.FileField(upload_to="appointments/")
+    medication = models.CharField(max_length=200, null=True, blank=True)
+    dosage = models.CharField(max_length=120, blank=True)
+    frequency = models.CharField(max_length=120, blank=True)
+    duration = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now)
-
 
     class Meta:
         ordering = ["-created_at"]
@@ -22,11 +23,10 @@ class AppointmentFile(models.Model):
 
 
 class AppointmentFile(models.Model):
-    # ✅ CAMBIO CLAVE: related_name único (ya NO "files")
     appointment = models.ForeignKey(
-        Appointment,
+        "appointments.Appointment",
         on_delete=models.CASCADE,
-        related_name="prescription_files",
+        related_name="prescription_files",  # ✅ evita choque con records
     )
     title = models.CharField(max_length=120, blank=True)
     file = models.FileField(upload_to="appointments/")
