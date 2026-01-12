@@ -14,25 +14,25 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-this")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # =====================================================
-# RENDER HOST / ALLOWED HOSTS (FIX DEFINITIVO 400)
+# HOSTS (FIX DEFINITIVO PARA 400 EN RENDER)
 # =====================================================
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 
 ALLOWED_HOSTS = [
+    "clinic-at22.onrender.com",  # ✅ tu dominio exacto
+    ".onrender.com",
     "localhost",
     "127.0.0.1",
-    ".onrender.com",
+    "0.0.0.0",
 ]
 
-if RENDER_EXTERNAL_HOSTNAME:
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://clinic-at22.onrender.com",
     "https://*.onrender.com",
 ]
-
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # =====================================================
 # APPLICATIONS
@@ -142,9 +142,6 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# =====================================================
-# DEFAULTS
-# =====================================================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # =====================================================
@@ -155,3 +152,21 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+# =====================================================
+# LOGGING (PARA VER DISALLOWEDHOST EN LOGS DE RENDER)
+# =====================================================
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "django.security.DisallowedHost": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
