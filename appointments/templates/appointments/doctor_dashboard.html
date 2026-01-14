@@ -16,7 +16,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <div class="muted small">Hoy</div>
-              <div class="h4 mb-0">{{ today_total|default:"0" }}</div>
+              <div class="h4 mb-0">{{ today_counts.total|default:"0" }}</div>
             </div>
             <i class="bi bi-calendar-day fs-3"></i>
           </div>
@@ -30,7 +30,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <div class="muted small">Pendientes</div>
-              <div class="h4 mb-0">{{ pending_total|default:"0" }}</div>
+              <div class="h4 mb-0">{{ today_counts.pending|default:"0" }}</div>
             </div>
             <i class="bi bi-hourglass-split fs-3"></i>
           </div>
@@ -44,7 +44,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <div class="muted small">Confirmadas</div>
-              <div class="h4 mb-0">{{ confirmed_total|default:"0" }}</div>
+              <div class="h4 mb-0">{{ today_counts.confirmed|default:"0" }}</div>
             </div>
             <i class="bi bi-check2-circle fs-3"></i>
           </div>
@@ -58,7 +58,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <div>
               <div class="muted small">Canceladas</div>
-              <div class="h4 mb-0">{{ cancelled_total|default:"0" }}</div>
+              <div class="h4 mb-0">{{ today_counts.cancelled|default:"0" }}</div>
             </div>
             <i class="bi bi-x-circle fs-3"></i>
           </div>
@@ -67,12 +67,12 @@
     </div>
   </div>
 
-  {% if latest %}
+  {% if next_appointments %}
     <div class="panel-glass p-3 p-md-4 mt-4">
       <div class="card card-soft border-0">
         <div class="card-body p-0">
           <div class="p-4 pb-2">
-            <h2 class="h6 mb-0">Últimas citas</h2>
+            <h2 class="h6 mb-0">Próximas citas</h2>
             <div class="muted small">Acceso rápido</div>
           </div>
 
@@ -87,7 +87,7 @@
                 </tr>
               </thead>
               <tbody>
-                {% for a in latest %}
+                {% for a in next_appointments %}
                   <tr>
                     <td class="ps-4">{{ a.start_time|date:"d/m/Y H:i" }}</td>
                     <td>{{ a.patient|default:"—" }}</td>

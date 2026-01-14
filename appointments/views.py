@@ -155,7 +155,6 @@ def doctor_dashboard(request):
 # ---------------------------
 # DETALLE (Notas / Recetas / Archivos)
 # ---------------------------
-
 @login_required
 def appointment_detail(request, pk):
     appointment = get_object_or_404(Appointment, pk=pk)
@@ -167,8 +166,10 @@ def appointment_detail(request, pk):
         return redirect("my_appointments")
 
     notes_qs = appointment.notes.all()
-    prescriptions = appointment.prescriptions.all()
-    files = appointment.files.all()
+
+    # ✅ seguros
+    prescriptions = Prescription.objects.filter(appointment=appointment)
+    files = AppointmentFile.objects.filter(appointment=appointment)
 
     form = None
     prescription_form = None
